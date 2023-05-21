@@ -1,0 +1,4 @@
+asyncio==3.4.3
+configparser==5.0.2
+spotipy==2.18.0
+telethon==1.23.0
