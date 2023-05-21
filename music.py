@@ -22,7 +22,7 @@ async def main():
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                 client_secret=client_secret,
                                                 redirect_uri=redirect_uri,
-                                                scope="user-read-playback-state,user-modify-playback-state",
+                                                scope="user-read-playback-state,user-modify-playback-state,playlist-modify-private",
                                                 cache_path="./home"))
 
 
@@ -41,7 +41,7 @@ async def main():
         global flag
         if event.message.from_id in user_ids:
             # check for the '!music:' command
-            if event.message.message.startswith("!music:"):
+            if event.message.message.startswith("!music"):
                 music_name = event.message.message[7:]
                 # search for the song on Spotify
                 results = sp.search(q=music_name, limit=1, type='track')
@@ -64,6 +64,10 @@ async def main():
                     # Forward the message to the user
                     await client.forward_messages(user_ids[0], last_message[1])
 
+                    # add to playlist
+                    playlist_id = config['spotify']['playlist_id']
+                    sp.playlist_add_items(playlist_id, [track_uri])
+
                     # Check if the song is still playing
                     current_track = sp.current_playback()
                     if current_track is not None and current_track['is_playing']:
@@ -81,7 +85,7 @@ async def main():
                     # Song has changed, so the last one must have ended
                     message = "Song ended"
                     await client.send_message(user_ids[0], message)
-                    flag = 0
+                        
                 last_track = current_track
             await asyncio.sleep(5)  # Wait for 5 seconds before checking again
 
