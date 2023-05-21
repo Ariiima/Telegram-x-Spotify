@@ -18,13 +18,11 @@ Before you can use Music.py, you need to have the following:
 To install Music.py, follow these steps:
 
 1. Clone the repository to your local machine:
-```
-git clone https://github.com/Ariiima/music.py.git
-```  
+
 
 2. Install the required Python packages:
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 3. Create a `config.ini` file in the root directory of the project with the following contents:
@@ -44,7 +42,7 @@ Replace the values in angle brackets with your own values.
 
 4. Run the script:
 
-`python music.py`
+`python3 music.py`
 
 
 ## Usage
