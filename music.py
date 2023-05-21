@@ -5,13 +5,14 @@ from spotipy.oauth2 import SpotifyOAuth
 from telethon.tl.types import PeerUser
 import os
 import configparser
-
+import socks
 
 async def main():
     config = configparser.ConfigParser()
     config.read('config.ini')
     os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:10808'
     os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:10808'
+    proxy = (socks.SOCKS5, '127.0.0.1',10808)
 
     client_id = config['spotify']['client_id']
     client_secret = config['spotify']['client_secret']
@@ -32,7 +33,7 @@ async def main():
     user_ids = [PeerUser(int(id)) for id in config['telegram']['user_ids'].split(',')]
 
     print("Starting client...")
-    client = TelegramClient('my_account', int(api_id), api_hash)
+    client = TelegramClient('my_account', int(api_id), api_hash,proxy=proxy)
         
     flag =0
     @client.on(events.NewMessage(incoming=True))
@@ -58,28 +59,28 @@ async def main():
 
                     # Get the last message from the bot
                     last_message = await client.get_messages('motreb_downloader_bot', limit=2)
-                    print(last_message[1].message)
+                    # print(last_message[1].message)
                     # await client.edit_message(last_message[1], "", entities=None)
                     # Forward the message to the user
-                    await client.forward_messages(user_ids[1], last_message[1])
+                    await client.forward_messages(user_ids[0], last_message[1])
 
                     # Check if the song is still playing
                     current_track = sp.current_playback()
                     if current_track is not None and current_track['is_playing']:
                         # Song is still playing
                         message = f"Song '{track_name}' by {track_artist} played"
-                        await client.send_message(user_ids[1], message)
+                        await client.send_message(user_ids[0], message)
                     
     async def check_song_end():
         last_track = None
         while True:
             current_track = sp.current_playback()
-            print(current_track)
+            # print(current_track)
             if current_track is not None:
                 if last_track is not None and last_track['item']['uri'] != current_track['item']['uri']:
                     # Song has changed, so the last one must have ended
                     message = "Song ended"
-                    await client.send_message(user_ids[1], message)
+                    await client.send_message(user_ids[0], message)
                     flag = 0
                 last_track = current_track
             await asyncio.sleep(5)  # Wait for 5 seconds before checking again
