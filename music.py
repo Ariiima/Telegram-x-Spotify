@@ -11,7 +11,6 @@ import tracemalloc
 tracemalloc.start()
 
 global user_ids,sp,client,config
-global user_ids,sp,client,config
 config = configparser.ConfigParser()
 config.read('config.ini')
 os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:10808'
@@ -38,14 +37,6 @@ user_ids = [PeerUser(int(id)) for id in config['telegram']['user_ids'].split(','
 print("Starting client...")
 client = TelegramClient('my_account', int(api_id), api_hash,proxy=proxy)
 
-def console_menu():
-    print("Welcome to the Music Player!")
-    print("1- Listen from User")
-    print("2- Play a specific song")
-    print("3- Add to queue")
-    print("4- Play from playlist")
-    choice = input("Enter your choice: ")
-    return choice
 
 async def play_song(song_name, sp):
     # Search for the song on Spotify
@@ -65,70 +56,8 @@ async def play_song(song_name, sp):
         song_name = current_track['item']['name']
         print(f"Now playing: {song_name}")
 
-def standardize_phone_number(phone_number):
-    if phone_number[0] == "+":
-        return phone_number
-    elif phone_number[0] == "0":
-        return "+98" + phone_number[1:]
-    else:
-        return "+98" + phone_number
 
-async def listen_from_user():
-    global user_ids,sp,client,config
-    print("Do you want to add user from Username or Phone Number?")
-    print("1- Username")
-    print("2- Phone Number")
-    choice = input("Enter your choice: ")
-    if choice == "1":
-        username = input("Enter the username: ")
-        # get id from username and add to user_ids
-        entity = await client.get_entity(username)
-        # get id from username
-        user_id = entity.id
-        user_ids.append(PeerUser(int(user_id)))
-    elif choice == "2":
-        phone_number = input("Enter the phone number: ")
-        phone_number = standardize_phone_number(phone_number)
-        # get id from phone number and add to user_ids
-        entity = await client.get_entity(phone_number)
-        # get id from phone number
-        user_id = entity.id
-        user_ids.append(PeerUser(int(user_id)))
-
-
-def add_to_queue():
-    # Do something
-    pass
-
-
-def play_from_playlist():
-    # Do something
-    pass
-
-
-async def menu():
-    global user_ids,sp,client,config
-    while True:
-        choice = console_menu()
-        if choice == "1":
-            # await listen_from_user()
-            print("Still not implemented fully")
-        elif choice == "2":
-            # Play a specific song
-            song_name = input("Enter the song name: ")
-            await play_song(song_name, sp)
-        elif choice == "3":
-            add_to_queue()
-        elif choice == "4":
-            play_from_playlist()
-        else:
-            print("Invalid choice")
-
-
-# Start the menu thread
-menu_thread = threading.Thread(target=menu)
-menu_thread.start()
-
+@client.on(events.NewMessage(incoming=True))
 async def incoming_message_handler(event):
     global user_ids,sp,client,config
     print(event.message.message)
@@ -164,32 +93,24 @@ async def incoming_message_handler(event):
                 sp.playlist_add_items(playlist_id, [track_uri])
 
 
-@client.on(events.NewMessage(incoming=True))
-async def start(event):
-    await main()
 
-async def main():
-    global user_ids,sp,client,config
-    await menu()
-
-    async def check_song_end():
-        last_track = None
-        while True:
-            current_track = sp.current_playback()
-            # print(current_track)
-            if current_track is not None:
-                if last_track is not None and last_track['item']['uri'] != current_track['item']['uri']:
-                    # Song has changed, so the last one must have ended
-                    message = "Song ended"
-                    await client.send_message(user_ids[0], message)
-                        
-                last_track = current_track
-            await asyncio.sleep(5)  # Wait for 5 seconds before checking again
-
-    asyncio.create_task(check_song_end())
-    client.start()
-    client.run_until_disconnected()
-
-asyncio.run(main())
+async def check_song_end():
+    last_track = None
+    while True:
+        current_track = sp.current_playback()
+        # print(current_track)
+        if current_track is not None:
+            if last_track is not None and last_track['item']['uri'] != current_track['item']['uri']:
+                # Song has changed, so the last one must have ended
+                message = "Song ended"
+                await client.send_message(user_ids[0], message)
+                    
+            last_track = current_track
+        await asyncio.sleep(5)  # Wait for 5 seconds before checking again
 
 
+
+
+
+client.start()
+client.run_until_disconnected()
