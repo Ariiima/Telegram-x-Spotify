@@ -1,41 +1,32 @@
-from telethon import TelegramClient, events
 import asyncio
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from telethon.tl.types import PeerUser
-import os
 import configparser
+import os
 import socks
-import threading
+import spotipy
 import tracemalloc
-tracemalloc.start()
+from spotipy.oauth2 import SpotifyOAuth
+from telethon import TelegramClient, events
+from telethon.tl.types import PeerUser
 
-global user_ids,sp,client,config
+# Define global variables
 config = configparser.ConfigParser()
 config.read('config.ini')
 os.environ['HTTP_PROXY'] = 'socks5://127.0.0.1:10808'
 os.environ['HTTPS_PROXY'] = 'socks5://127.0.0.1:10808'
-proxy = (socks.SOCKS5, '127.0.0.1',10808)
-
+proxy = (socks.SOCKS5, '127.0.0.1', 10808)
 client_id = config['spotify']['client_id']
 client_secret = config['spotify']['client_secret']
 redirect_uri = config['spotify']['redirect_uri']
-# initialize the Spotify client
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
-                                            client_secret=client_secret,
-                                            redirect_uri=redirect_uri,
-                                            scope="user-read-playback-state,user-modify-playback-state,playlist-modify-private",
-                                            cache_path="./home"))
-
-
-# initialize the Telegram client
-
 api_id = config['telegram']['api_id']
 api_hash = config['telegram']['api_hash']
 user_ids = [PeerUser(int(id)) for id in config['telegram']['user_ids'].split(',')]
-
-print("Starting client...")
-client = TelegramClient('my_account', int(api_id), api_hash,proxy=proxy)
+playlist_id = config['spotify']['playlist_id']
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
+                                               client_secret=client_secret,
+                                               redirect_uri=redirect_uri,
+                                               scope="user-read-playback-state,user-modify-playback-state,playlist-modify-private",
+                                               cache_path="./home"))
+client = TelegramClient('my_account', int(api_id), api_hash, proxy=proxy)
 
 
 async def play_song(song_name, sp):
@@ -59,7 +50,7 @@ async def play_song(song_name, sp):
 
 @client.on(events.NewMessage(incoming=True))
 async def incoming_message_handler(event):
-    global user_ids,sp,client,config
+    global user_ids, sp, client, config
     print(event.message.message)
     global flag
     if event.message.from_id in user_ids:
@@ -83,15 +74,12 @@ async def incoming_message_handler(event):
 
                 # Get the last message from the bot
                 last_message = await client.get_messages('motreb_downloader_bot', limit=2)
-                # print(last_message[1].message)
-                # await client.edit_message(last_message[1], "", entities=None)
+
                 # Forward the message to the user
-                await client.forward_messages(user_ids[0], last_message[1])
+                await client.forward_messages(user_ids[1], last_message[1])
 
                 # add to playlist
-                playlist_id = config['spotify']['playlist_id']
                 sp.playlist_add_items(playlist_id, [track_uri])
-
 
 
 async def check_song_end():
@@ -104,13 +92,17 @@ async def check_song_end():
                 # Song has changed, so the last one must have ended
                 message = "Song ended"
                 await client.send_message(user_ids[0], message)
-                    
+
             last_track = current_track
         await asyncio.sleep(5)  # Wait for 5 seconds before checking again
 
 
+def main():
+    tracemalloc.start()
+    print("Starting client...")
+    client.start()
+    client.run_until_disconnected()
 
 
-
-client.start()
-client.run_until_disconnected()
+if __name__ == '__main__':
+    main()
